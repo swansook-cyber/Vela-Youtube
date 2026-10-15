@@ -22,3 +22,19 @@ A pass for this phase means **the page embeds and plays a permitted YouTube vide
 ## Production note
 
 The existing Android code remains unchanged. This lab deliberately has no service worker, login, YouTube API key, backend, analytics, autoplay, or custom Media Session implementation. Add PWA manifest and caching only after testing browser behavior and confirming an appropriate deployment origin.
+
+## Observed device result — 2026-10-15
+
+User-confirmed on iPhone Safari via deployed Cloudflare Pages preview: YouTube embed loads and plays picture and sound in foreground; **audio stops immediately after locking the screen**. This is a failed background-audio test, not a failed foreground playback test. Do not claim Media Session API alone can override an iframe player's behavior.
+
+### Next test: Home Screen installed web app
+
+1. In Safari open the Cloudflare Pages preview, tap Share > Add to Home Screen, then launch the added icon.
+2. Paste the *same* embeddable YouTube video URL used for the Safari test.
+3. Start the player manually and confirm foreground audio/video.
+4. Lock the screen for 30 seconds. Note if sound continues, stops, or can be resumed with lock-screen media controls.
+5. Record iOS version, device, and whether the site was launched from Safari or Home Screen. Report the actual result; do not assume installing as a web app changes background privileges.
+
+### Decision gate
+
+If foreground playback passes but lock-screen audio stops in both Safari and installed mode, mark YouTube background audio on iOS as unsupported by the tested official embed path. Preserve YouTube's authorized embed controls; do not add stream extraction, audio-only proxying, or attempts to bypass YouTube player restrictions. Continue with a video-first iOS experience or user-approved alternative instead.
