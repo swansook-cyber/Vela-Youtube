@@ -1,71 +1,94 @@
 <!doctype html>
 <html lang="th">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#111827">
-<link rel="manifest" href="./manifest.webmanifest">
-<link rel="icon" href="./icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./icon.svg">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vela YouTube · iOS playback lab</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101119"><meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml">
+<title>Vela YouTube</title>
 <style>
-:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif}
-body{margin:0;background:#0b1020;color:#f4f6fa;padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom)}
-main{max-width:850px;margin:auto;padding:28px 0}h1{font-size:1.65rem;margin:0 0 8px}
-p,small{color:#b7bdca;line-height:1.5}label{display:block;margin:24px 0 6px}
-input{width:100%;box-sizing:border-box;padding:14px;border-radius:12px;background:#1f2937;color:white;border:1px solid #566071;font-size:16px}
-button{padding:13px 18px;margin:10px 8px 10px 0;border:0;border-radius:12px;background:#ed4b80;color:#fff;font-weight:700;cursor:pointer}
-.player{aspect-ratio:16/9;width:100%;background:#000;border-radius:12px;overflow:hidden;margin-top:12px}
-#player{width:100%;height:100%}.note{border:1px solid #465063;padding:12px;border-radius:12px}
-pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#1c2536;padding:14px;border-radius:12px;color:#e7eaf3;min-height:60px}
+:root{font-family:system-ui,-apple-system,sans-serif;color-scheme:dark;color:#f6f6fa;background:#0d0f16}
+*{box-sizing:border-box}body{margin:0}button,input{font:inherit}
+header{position:sticky;top:0;z-index:10;background:#101119f7;border-bottom:1px solid #2a2e3a;padding:12px max(16px,env(safe-area-inset-right));display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{font-weight:850;font-size:1.2rem;letter-spacing:-.5px;white-space:nowrap}.logo b{background:#f04779;padding:4px 8px;border-radius:8px;color:white;margin-right:5px}
+.search{display:flex;gap:8px;flex:1;min-width:230px}
+input{background:#1e2230;border:1px solid #42495e;color:white;border-radius:12px;padding:12px;min-width:0;width:100%;font-size:16px}
+button{background:#292e3d;border:1px solid #414758;color:#fff;border-radius:11px;padding:10px 14px;cursor:pointer}
+button.primary{background:#e83f74;border-color:#e83f74;font-weight:700}
+button:focus-visible,input:focus-visible{outline:3px solid #ff90b8;outline-offset:2px}
+.wrap{max-width:1180px;margin:auto;padding:22px 16px 110px}
+nav{display:flex;gap:8px;overflow:auto;padding-bottom:10px}
+nav button[aria-selected=true]{background:#f2f2f5;color:#151821}
+h1{font-size:1.5rem;margin:16px 0 6px}p{color:#b7bdcb;line-height:1.5}
+.player{aspect-ratio:16/9;background:#000;border-radius:16px;overflow:hidden;margin:14px 0;max-width:920px}
+#player{width:100%;height:100%}.actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.card{border:1px solid #303545;background:#171a26;border-radius:15px;overflow:hidden}
+.thumb{width:100%;aspect-ratio:16/9;object-fit:cover;background:#222}
+.cardBody{padding:12px}.cardTitle{font-weight:700;overflow-wrap:anywhere}.meta{font-size:.85rem;color:#aeb4c3;margin:6px 0}
+.empty{border:1px dashed #454a5b;border-radius:14px;padding:22px;background:#161923}
+.hidden{display:none!important}.notice{font-size:.88rem;color:#b4bbc9;margin:8px 0 14px}
+#status{min-height:22px;color:#ffa9c3;font-size:.9rem}
+@media(min-width:900px){header{padding-left:max(calc((100vw - 1180px)/2),18px);padding-right:max(calc((100vw - 1180px)/2),18px)}}
 </style>
-</head>
-<body><main>
-<h1>Vela YouTube — iPhone/iPad playback lab</h1>
-<p>ต้นแบบทดสอบการเล่นผ่าน YouTube IFrame Player API บน Safari และ PWA เท่านั้น ยังไม่ใช่แอปเต็มระบบ</p>
-<label for="url">ลิงก์วิดีโอ YouTube</label>
-<input id="url" type="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off">
-<button id="load">โหลดวิดีโอ</button>
+</head><body>
+<header><div class="logo"><b>▶</b> Vela YouTube</div>
+<div class="search"><input id="query" aria-label="ลิงก์หรือคำค้นหา" placeholder="วางลิงก์ YouTube หรือค้นหาบน YouTube">
+<button class="primary" id="go">ไป</button></div></header>
+<main class="wrap">
+<nav aria-label="ส่วนต่าง ๆ">
+<button data-tab="home" aria-selected="true">หน้าแรก</button><button data-tab="saved" aria-selected="false">รายการโปรด</button>
+<button data-tab="history" aria-selected="false">ประวัติ</button><button data-tab="help" aria-selected="false">วิธีใช้</button>
+</nav>
+<section id="home">
+<h1>ดูวิดีโอ</h1><p>วางลิงก์วิดีโอ YouTube เพื่อเล่นและบันทึกไว้ดูอีกครั้ง ไม่ต้องเข้าสู่ระบบ</p>
 <div class="player"><div id="player"></div></div>
-<p class="note">เริ่มเล่นด้วยการแตะปุ่ม Play ภายในตัวเล่น แล้วทดลองล็อกหน้าจอ เปลี่ยนแอป และกลับมาอ่านสถานะ ไม่รับประกันการเล่นขณะล็อกจอ และไม่พยายามหลีกเลี่ยงข้อจำกัดของ YouTube หรือ Safari</p>
-<button id="clear">ล้างบันทึก</button>
-<pre id="log" role="status" aria-live="polite"></pre>
-<small>โปรดทดสอบทั้ง Safari และเพิ่มไปยังหน้าจอโฮม (Add to Home Screen) บน iPhone/iPad พร้อมบันทึกเวอร์ชัน iOS ผลการเล่นหลังล็อกจอ และการควบคุมจากหน้าล็อก</small>
+<div class="actions"><button id="save" class="primary">♡ บันทึกรายการโปรด</button><button id="copy">คัดลอกลิงก์</button><button id="open">เปิดบน YouTube</button></div>
+<div id="status" role="status" aria-live="polite"></div>
+<p class="notice">YouTube Player ต้องใช้การแตะเริ่มเล่น และอาจหยุดเสียงเมื่อล็อกหน้าจอ iPhone/iPad ฟังก์ชันค้นหาจะเปิดเว็บไซต์ YouTube ในแท็บใหม่</p>
+<h2>ดูต่อจากประวัติ</h2><div id="recent" class="cards"></div>
+</section>
+<section id="saved" class="hidden"><h1>รายการโปรด</h1><p>บันทึกไว้เฉพาะในเบราว์เซอร์เครื่องนี้</p><div id="favorites" class="cards"></div></section>
+<section id="history" class="hidden"><h1>ประวัติที่เปิดใน Vela</h1><div class="actions"><button id="clearHistory">ล้างประวัติ</button></div><div id="historyCards" class="cards"></div></section>
+<section id="help" class="hidden"><h1>วิธีใช้</h1><p>วางลิงก์ youtube.com/watch, youtu.be หรือ Shorts แล้วกด ไป จากนั้นแตะเล่นในตัวเล่น YouTube โดยตรง</p><p>หากพิมพ์คำค้น ระบบจะเปิดผลค้นหาในเว็บไซต์ YouTube ไม่ได้แอบดึงผลค้นหาหรือขอสิทธิ์บัญชี Google</p><p>รายการโปรดและประวัติไม่ซิงก์ข้ามอุปกรณ์ และจะหายหากล้างข้อมูลเว็บไซต์ในเครื่อง</p></section>
 </main>
 <script>
 "use strict";
-const out=document.getElementById("log");
-function log(message){const stamp=new Date().toLocaleTimeString("th-TH");out.textContent=(stamp+" "+message+"\n"+out.textContent).slice(0,5000);}
-let player=null,apiReady=false;
-function videoId(input){
-  try {
-    const url=new URL(input);
-    if(!["youtube.com","www.youtube.com","m.youtube.com","music.youtube.com","youtu.be","www.youtube-nocookie.com"].includes(url.hostname))return null;
-    let id=url.hostname==="youtu.be"?url.pathname.split("/")[1] : url.pathname.startsWith("/shorts/")||url.pathname.startsWith("/embed/")?url.pathname.split("/")[2]:url.searchParams.get("v");
-    return /^[a-zA-Z0-9_-]{11}$/.test(id||"")?id:null;
-  } catch {return null;}
+const $=id=>document.getElementById(id);
+const KEY="vela-youtube-web-v1";
+function read(){try{const x=JSON.parse(localStorage.getItem(KEY)||"{}");return {favorites:Array.isArray(x.favorites)?x.favorites:[],history:Array.isArray(x.history)?x.history:[]};}catch{return {favorites:[],history:[]};}}
+let data=read(),current=null,player=null,apiReady=false;
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(data));}catch{status("บันทึกในเครื่องไม่ได้ อาจอยู่ในโหมดส่วนตัว");}}
+function status(s){$("status").textContent=s;}
+function parseVideo(raw){try{const u=new URL(raw);const host=u.hostname.toLowerCase();const valid=["youtube.com","www.youtube.com","m.youtube.com","music.youtube.com","youtu.be","www.youtube-nocookie.com"];if(!valid.includes(host))return null;const seg=u.pathname.split("/");const v=host==="youtu.be"?seg[1]:["shorts","embed","live"].includes(seg[1])?seg[2]:u.searchParams.get("v");return /^[a-zA-Z0-9_-]{11}$/.test(v||"")?v:null;}catch{return null;}}
+function url(id){return "https://www.youtube.com/watch?v="+encodeURIComponent(id);}
+function show(tab){for(const el of document.querySelectorAll("main section"))el.classList.toggle("hidden",el.id!==tab);for(const el of document.querySelectorAll("nav button"))el.setAttribute("aria-selected",String(el.dataset.tab===tab));render();}
+for(const el of document.querySelectorAll("nav button"))el.addEventListener("click",()=>show(el.dataset.tab));
+window.onYouTubeIframeAPIReady=()=>{apiReady=true;if(current)play(current);};
+function play(id){current=id;show("home");$("query").value=url(id);if(!apiReady){status("กำลังโหลดตัวเล่น YouTube…");return;}
+ if(player&&typeof player.destroy==="function")player.destroy();
+ const target=document.createElement("div");target.id="player";document.querySelector(".player").replaceChildren(target);
+ player=new YT.Player("player",{videoId:id,playerVars:{playsinline:1,origin:location.origin},events:{onReady:()=>status("ตัวเล่นพร้อม — แตะ Play เพื่อเริ่ม"),onError:e=>status("YouTube Player error: "+e.data)}});
+ data.history=[id,...data.history.filter(x=>x!==id)].slice(0,60);persist();render();
 }
-window.onYouTubeIframeAPIReady=()=>{apiReady=true;log("YouTube IFrame API พร้อมใช้งาน");};
-document.getElementById("load").onclick=()=>{
-  const id=videoId(document.getElementById("url").value.trim());
-  if(!id){log("ลิงก์ไม่ถูกต้อง หรือไม่ได้อยู่ในโดเมน YouTube ที่รองรับ");return;}
-  if(!apiReady){log("กำลังโหลด YouTube API โปรดลองอีกครั้ง");return;}
-  if(player&&typeof player.destroy==="function")player.destroy();
-  const target=document.createElement("div");target.id="player";
-  document.querySelector(".player").replaceChildren(target);
-  player=new YT.Player("player",{videoId:id,playerVars:{playsinline:1,origin:location.origin},events:{
-    onReady:()=>log("ตัวเล่นพร้อม: แตะ Play ด้วยตนเอง"),
-    onStateChange:e=>log("Player state: "+({[-1]:"unstarted",[0]:"ended",[1]:"playing",[2]:"paused",[3]:"buffering",[5]:"cued"}[e.data]||e.data)),
-    onError:e=>log("Player error: "+e.data)
-  }});
-};
-document.getElementById("clear").onclick=()=>{out.textContent="";};
-document.addEventListener("visibilitychange",()=>log("visibility: "+document.visibilityState));
-window.addEventListener("pagehide",()=>log("pagehide"));
-window.addEventListener("pageshow",()=>log("pageshow"));
-log("พร้อมทดสอบ");
+function go(){const raw=$("query").value.trim();if(!raw)return;const id=parseVideo(raw);if(id){play(id);return;}
+ if(/^https?:\/\//i.test(raw)){status("รองรับเฉพาะลิงก์วิดีโอ YouTube ที่ถูกต้อง");return;}
+ window.open("https://www.youtube.com/results?search_query="+encodeURIComponent(raw),"_blank","noopener,noreferrer");
+}
+$("go").onclick=go;$("query").addEventListener("keydown",e=>{if(e.key==="Enter")go();});
+$("save").onclick=()=>{if(!current){status("กรุณาเลือกวิดีโอก่อน");return;}const has=data.favorites.includes(current);data.favorites=has?data.favorites.filter(x=>x!==current):[current,...data.favorites];persist();render();status(has?"นำออกจากรายการโปรดแล้ว":"บันทึกแล้ว");};
+$("open").onclick=()=>{if(current)window.open(url(current),"_blank","noopener,noreferrer");else status("กรุณาเลือกวิดีโอก่อน");};
+$("copy").onclick=async()=>{if(!current)return status("กรุณาเลือกวิดีโอก่อน");try{await navigator.clipboard.writeText(url(current));status("คัดลอกลิงก์แล้ว");}catch{status(url(current));}};
+$("clearHistory").onclick=()=>{if(!confirm("ล้างประวัติการเปิดวิดีโอในเครื่องนี้?"))return;data.history=[];persist();render();};
+function makeCard(id,withRemove){const card=document.createElement("article");card.className="card";
+const pic=document.createElement("img");pic.className="thumb";pic.loading="lazy";pic.alt="ภาพตัวอย่างวิดีโอ";pic.src="https://i.ytimg.com/vi/"+id+"/hqdefault.jpg";pic.referrerPolicy="no-referrer";card.append(pic);
+const body=document.createElement("div");body.className="cardBody";const title=document.createElement("div");title.className="cardTitle";title.textContent="วิดีโอ "+id;body.append(title);
+const meta=document.createElement("div");meta.className="meta";meta.textContent="YouTube · "+id;body.append(meta);
+const btn=document.createElement("button");btn.textContent="▶ เล่น";btn.addEventListener("click",()=>{play(id);scrollTo({top:0,behavior:"smooth"});});body.append(btn);
+if(withRemove){const remove=document.createElement("button");remove.textContent="นำออก";remove.addEventListener("click",()=>{data.favorites=data.favorites.filter(x=>x!==id);persist();render();});body.append(remove);}
+card.append(body);return card;}
+function cards(element,ids,removable){element.replaceChildren();if(!ids.length){const empty=document.createElement("div");empty.className="empty";empty.textContent="ยังไม่มีรายการ ลองเปิดวิดีโอแล้วบันทึกไว้";element.append(empty);return;}for(const id of ids)if(/^[\w-]{11}$/.test(id))element.append(makeCard(id,removable));}
+function render(){cards($("recent"),data.history.slice(0,8),false);cards($("favorites"),data.favorites,true);cards($("historyCards"),data.history,false);$("save").textContent=current&&data.favorites.includes(current)?"♥ นำออกจากรายการโปรด":"♡ บันทึกรายการโปรด";}
+render();const first=new URLSearchParams(location.search).get("v");if(/^[\w-]{11}$/.test(first||"")){current=first;if(apiReady)play(first);}
 </script>
 <script src="https://www.youtube.com/iframe_api" async></script>
 </body></html>
