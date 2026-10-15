@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "Vela YouTube Playback Lab",
+  "short_name": "Vela YT Lab",
+  "description": "iPhone/iPad browser playback validation",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1020",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

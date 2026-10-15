@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Vela YouTube · iOS playback lab</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif}
+body{margin:0;background:#0b1020;color:#f4f6fa;padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom)}
+main{max-width:850px;margin:auto;padding:28px 0}h1{font-size:1.65rem;margin:0 0 8px}
+p,small{color:#b7bdca;line-height:1.5}label{display:block;margin:24px 0 6px}
+input{width:100%;box-sizing:border-box;padding:14px;border-radius:12px;background:#1f2937;color:white;border:1px solid #566071;font-size:16px}
+button{padding:13px 18px;margin:10px 8px 10px 0;border:0;border-radius:12px;background:#ed4b80;color:#fff;font-weight:700;cursor:pointer}
+.player{aspect-ratio:16/9;width:100%;background:#000;border-radius:12px;overflow:hidden;margin-top:12px}
+#player{width:100%;height:100%}.note{border:1px solid #465063;padding:12px;border-radius:12px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#1c2536;padding:14px;border-radius:12px;color:#e7eaf3;min-height:60px}
+</style>
+</head>
+<body><main>
+<h1>Vela YouTube — iPhone/iPad playback lab</h1>
+<p>ต้นแบบทดสอบการเล่นผ่าน YouTube IFrame Player API บน Safari และ PWA เท่านั้น ยังไม่ใช่แอปเต็มระบบ</p>
+<label for="url">ลิงก์วิดีโอ YouTube</label>
+<input id="url" type="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off">
+<button id="load">โหลดวิดีโอ</button>
+<div class="player"><div id="player"></div></div>
+<p class="note">เริ่มเล่นด้วยการแตะปุ่ม Play ภายในตัวเล่น แล้วทดลองล็อกหน้าจอ เปลี่ยนแอป และกลับมาอ่านสถานะ ไม่รับประกันการเล่นขณะล็อกจอ และไม่พยายามหลีกเลี่ยงข้อจำกัดของ YouTube หรือ Safari</p>
+<button id="clear">ล้างบันทึก</button>
+<pre id="log" role="status" aria-live="polite"></pre>
+<small>โปรดทดสอบทั้ง Safari และเพิ่มไปยังหน้าจอโฮม (Add to Home Screen) บน iPhone/iPad พร้อมบันทึกเวอร์ชัน iOS ผลการเล่นหลังล็อกจอ และการควบคุมจากหน้าล็อก</small>
+</main>
+<script>
+"use strict";
+const out=document.getElementById("log");
+function log(message){const stamp=new Date().toLocaleTimeString("th-TH");out.textContent=(stamp+" "+message+"\n"+out.textContent).slice(0,5000);}
+let player=null,apiReady=false;
+function videoId(input){
+  try {
+    const url=new URL(input);
+    if(!["youtube.com","www.youtube.com","m.youtube.com","music.youtube.com","youtu.be","www.youtube-nocookie.com"].includes(url.hostname))return null;
+    let id=url.hostname==="youtu.be"?url.pathname.split("/")[1] : url.pathname.startsWith("/shorts/")||url.pathname.startsWith("/embed/")?url.pathname.split("/")[2]:url.searchParams.get("v");
+    return /^[a-zA-Z0-9_-]{11}$/.test(id||"")?id:null;
+  } catch {return null;}
+}
+window.onYouTubeIframeAPIReady=()=>{apiReady=true;log("YouTube IFrame API พร้อมใช้งาน");};
+document.getElementById("load").onclick=()=>{
+  const id=videoId(document.getElementById("url").value.trim());
+  if(!id){log("ลิงก์ไม่ถูกต้อง หรือไม่ได้อยู่ในโดเมน YouTube ที่รองรับ");return;}
+  if(!apiReady){log("กำลังโหลด YouTube API โปรดลองอีกครั้ง");return;}
+  if(player&&typeof player.destroy==="function")player.destroy();
+  const target=document.createElement("div");target.id="player";
+  document.querySelector(".player").replaceChildren(target);
+  player=new YT.Player("player",{videoId:id,playerVars:{playsinline:1,origin:location.origin},events:{
+    onReady:()=>log("ตัวเล่นพร้อม: แตะ Play ด้วยตนเอง"),
+    onStateChange:e=>log("Player state: "+({[-1]:"unstarted",[0]:"ended",[1]:"playing",[2]:"paused",[3]:"buffering",[5]:"cued"}[e.data]||e.data)),
+    onError:e=>log("Player error: "+e.data)
+  }});
+};
+document.getElementById("clear").onclick=()=>{out.textContent="";};
+document.addEventListener("visibilitychange",()=>log("visibility: "+document.visibilityState));
+window.addEventListener("pagehide",()=>log("pagehide"));
+window.addEventListener("pageshow",()=>log("pageshow"));
+log("พร้อมทดสอบ");
+</script>
+<script src="https://www.youtube.com/iframe_api" async></script>
+</body></html>
