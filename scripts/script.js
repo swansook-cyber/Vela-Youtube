@@ -743,7 +743,7 @@ ytpSetI.innerHTML+=`<br><b style='font-size:18px' >YT PRO Settings</b>
 </svg>
 </button>
 <br>
-<button data-action="checkUpdate">Check for Updates
+<button data-action="checkUpdate">Vela YouTube Updates
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="${isD ? "#ccc" : "#444"}"  viewBox="0 0 16 16">
 <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/>
 </svg>
@@ -954,18 +954,6 @@ try{document.getElementById("settingsprodiv").remove();}catch{}
 a.click();
 
 }
-}
-
-function checkUpdates(){
-if(parseFloat(Android.getInfo()) < parseFloat(YTProVer) ){
-updateModel();
-}else{
-Android.showToast("Your app is up to date");
-}
-
-fetch('https://youtube.com/ytpro_cdn/npm/ytpro', {cache: 'reload'});
-fetch('https://youtube.com/ytpro_cdn/npm/ytpro/bgplay.js', {cache: 'reload'});
-fetch('https://youtube.com/ytpro_cdn/npm/ytpro/innertube.js', {cache: 'reload'});
 }
 
 
@@ -1256,7 +1244,7 @@ window.location.href=e.destination.url;
 var script = doc.createElement("script");
 var scriptSource=`window.addEventListener('DOMContentLoaded', function() {
 var script2 = document.createElement('script');
-script2.src="//youtube.com/ytpro_cdn/npm/ytpro";
+script2.src="//youtube.com/ytpro_cdn/vela-local/script.js";
 document.body.appendChild(script2);
 });
 `;
@@ -1271,7 +1259,7 @@ window.location.href=e.destination.url;
 var script = doc.createElement("script");
 var scriptSource=`window.addEventListener('DOMContentLoaded', function() {
 var script2 = document.createElement('script');
-script2.src="//youtube.com/ytpro_cdn/npm/ytpro";
+script2.src="//youtube.com/ytpro_cdn/vela-local/script.js";
 document.body.appendChild(script2);
 });
 `;
@@ -1855,12 +1843,6 @@ ytproMainDiv.appendChild(ytproGemini);
 ytproGemini.addEventListener("click",
 async function(){
 
-
-if(parseFloat(Android.getInfo()) < parseFloat(YTProVer)){
-updateModel();
-
-return;
-}
 
 geminiInfo();
 
@@ -2678,63 +2660,6 @@ catch{}
 // Start observing changes in the body
 observer.observe(targetNode, config);
 
-
-
-
-
-/*Update your app bruh*/
-function updateModel(){
-var x=document.createElement("div");
-
-x.setAttribute("style",`height:100%;width:100%;position:fixed;display:grid;align-items:center;top:0;left:0;background:rgba(0,0,0,.6);z-index:99999;`);
-
-x.innerHTML=`
-<div style="height:auto;width:70%;padding:20px;background:rgba(0,0,0,.6);border:1px solid #888;box-shadow:0px 0px 5px black;color:white;backdrop-filter:blur(10px);border-radius:15px;margin:auto">
-<h2> Update Available</h2><br>
-Latest Version ${YTProVer} of YTPRO is available , update the YTPRO to get latest features.
-<br>
-- Fixed Downloader<br>
-- Added container lables on Audio Only<br>
-- Fixed Gemini Bugs , added new models<br>
-- Optimized overall UI<br>
-- Fixed bugs and improved functionality<br>
-- for the full list <u data-action="url" >click here</u>
-<br>
-<br>
-<div style="display:flex;">
-<button style="border:0;border-radius:10px;height:30px;width:150px;background:;" data-action="cancel">Cancel</button>
-<button style="border:0;border-radius:10px;height:30px;width:150px;background:rgba(255,50,50,.7);float:right;" data-action="download" >Download</button>
-</div>
-
-</div>
-`;
-
-x.addEventListener("click",(e)=>{
-  var el=e.target.closest("[data-action]");
-  if(!el) return;
-  var action=el.dataset.action;
-  
-  if(action == "url"){
-    Android.oplink('https://github.com/prateek-chaubey/YTPRO/releases');
-  }else if(action == "download"){
-    Android.downvid('YTPRO.zip','https://nightly.link/prateek-chaubey/YTPro/workflows/gradle/main/YTPRO.zip','application/zip');  
-  }else if(action =="cancel"){
-    el.parentElement.parentElement.parentElement.remove();
-  }
-  
-})
-
-document.body.appendChild(x);
-}
-
- 
-
-window.onload = function(){
-if(parseFloat(Android.getInfo()) < parseFloat(YTProVer) && (window.location.href == "https://m.youtube.com/" || window.location.href == "https://m.youtube.com") ){
-updateModel();
-}
-
-};
 
 
 
