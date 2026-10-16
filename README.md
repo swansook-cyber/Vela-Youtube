@@ -18,10 +18,14 @@
 > If you like this project, consider [sponsoring](https://github.com/sponsors/prateek-chaubey) to support the author 🙁
 ---
 
-## Download YT PRO
+## Download Vela YouTube (development)
 
-<a href="https://github.com/prateek-chaubey/YTPro/releases/latest"><img src="https://raw.githubusercontent.com/prateek-chaubey/YTPro/main/.github/img/githubapk.png" height=70></a>
-<a href="https://nightly.link/prateek-chaubey/YTPro/workflows/gradle/main/YTPRO.zip"><img src="https://raw.githubusercontent.com/prateek-chaubey/YTPro/main/.github/img/nightlyapk.png" height=80></a>
+Use the **Vela YouTube Android Debug** workflow's `vela-youtube-debug` artifact from this repository:
+https://github.com/swansook-cyber/Vela-Youtube/actions/workflows/gradle.yml
+
+**Do not install upstream YTPro APKs as Vela YouTube updates.** Debug builds are for testing and are not signed production releases. Future Vela YouTube releases should come only from official VelaLab-controlled sources after signature verification.
+
+This app is independently maintained from the MIT-licensed YTPro source; original upstream credits are retained below.
 
 #### Screenshots
 | | | |
