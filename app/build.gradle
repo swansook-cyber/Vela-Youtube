@@ -1,15 +1,16 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.google.android.youtube.pro"  
+    // Keep the upstream namespace until Java source package migration is audited.
+    namespace "com.google.android.youtube.pro"
     compileSdk 36
 
     defaultConfig {
-        applicationId "com.google.android.youtube.pro"
+        applicationId "net.velalab.youtube"
         minSdkVersion 21
         targetSdkVersion 36
         versionCode 1
-        versionName "4.0"
+        versionName "0.1.0-dev"
     }
 
     buildTypes {
@@ -21,9 +22,5 @@ android {
 }
 
 dependencies {
-    // Add your dependencies here
     implementation 'androidx.webkit:webkit:1.12.0'
 }
-
-
-

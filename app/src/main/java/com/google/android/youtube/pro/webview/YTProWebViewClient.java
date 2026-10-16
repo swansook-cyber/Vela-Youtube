@@ -34,6 +34,24 @@ public class YTProWebViewClient extends WebViewClient {
 	public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
 		String url = request.getUrl().toString();
 
+		// Vela-owned scripts are bundled in the APK; never fetch YTPro @latest.
+		final String localPrefix = "https://youtube.com/ytpro_cdn/vela-local/";
+		if (url.startsWith(localPrefix)) {
+			String asset = url.substring(localPrefix.length());
+			if (!asset.equals("script.js") && !asset.equals("bgplay.js") && !asset.equals("innertube.js")) {
+				return new WebResourceResponse("text/plain", "UTF-8", 404, "Not Found",
+					new HashMap<String, String>(), new ByteArrayInputStream(new byte[0]));
+			}
+			try {
+				return new WebResourceResponse("application/javascript", "UTF-8",
+					activity.getAssets().open("vela/" + asset));
+			} catch (Exception e) {
+				Log.e("VelaYouTube", "Bundled script unavailable: " + asset, e);
+				return new WebResourceResponse("text/plain", "UTF-8", 404, "Not Found",
+					new HashMap<String, String>(), new ByteArrayInputStream(new byte[0]));
+			}
+		}
+
 		if (url.contains("accounts.google.com") ||
     url.contains("myaccount.google.com") ||
     url.contains("accounts.youtube.com") || 
@@ -185,9 +203,9 @@ public class YTProWebViewClient extends WebViewClient {
 	@Override
 	public void onPageFinished(WebView view, String url) {
 		web.evaluateJavascript("if (window.trustedTypes && window.trustedTypes.createPolicy && !window.trustedTypes.defaultPolicy) {window.trustedTypes.createPolicy('default', {createHTML: (string) => string,createScriptURL: string => string, createScript: string => string, });}", null);
-		web.evaluateJavascript("(function () { var script = document.createElement('script'); script.src='https://youtube.com/ytpro_cdn/npm/ytpro@latest'; document.body.appendChild(script);  })();", null);
-		web.evaluateJavascript("(function () { var script = document.createElement('script'); script.src='https://youtube.com/ytpro_cdn/npm/ytpro@latest/bgplay.js'; document.body.appendChild(script);  })();", null);
-		web.evaluateJavascript("(function () { var script = document.createElement('script');script.type='module';script.src='https://youtube.com/ytpro_cdn/npm/ytpro@latest/innertube.js'; document.body.appendChild(script);  })();", null);
+		web.evaluateJavascript("(function () { var script = document.createElement('script'); script.src='https://youtube.com/ytpro_cdn/vela-local/script.js'; document.body.appendChild(script);  })();", null);
+		web.evaluateJavascript("(function () { var script = document.createElement('script'); script.src='https://youtube.com/ytpro_cdn/vela-local/bgplay.js'; document.body.appendChild(script);  })();", null);
+		web.evaluateJavascript("(function () { var script = document.createElement('script');script.type='module';script.src='https://youtube.com/ytpro_cdn/vela-local/innertube.js'; document.body.appendChild(script);  })();", null);
 		
 		
 		

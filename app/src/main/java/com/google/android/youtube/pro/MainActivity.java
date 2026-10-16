@@ -65,6 +65,10 @@ public class MainActivity extends Activity {
         
         this.dL = dl;
         web = findViewById(R.id.web);
+        // Let Android TV D-pad, keyboard and accessibility services focus WebView.
+        web.setFocusable(true);
+        web.setFocusableInTouchMode(true);
+        web.requestFocus();
         
         web.getSettings().setJavaScriptEnabled(true);
         web.getSettings().setSupportZoom(true);
