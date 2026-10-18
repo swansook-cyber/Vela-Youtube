@@ -176,7 +176,7 @@ public class MainActivity extends Activity {
                 "var style=document.getElementById('vela-tv-focus-style');" +
                 "if(!style){style=document.createElement('style');style.id='vela-tv-focus-style';" +
                 "style.textContent='.vela-tv-selected{outline:4px solid #ff4fb8!important;outline-offset:3px!important;box-shadow:0 0 0 3px #161b30!important}';document.head.appendChild(style);}" +
-                "var els=Array.from(document.querySelectorAll('a[href],button,[role=button],[role=link],input,[tabindex]:not([tabindex=\\\"-1\\\"])'))" +
+                "var els=Array.from(document.querySelectorAll('a[href],button,[role=button],[role=link],input,[tabindex]'))" +
                 ".filter(function(e){var r=e.getBoundingClientRect();var st=getComputedStyle(e);" +
                 "return r.width>8&&r.height>8&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth&&st.visibility!=='hidden'&&st.display!=='none'&&!e.disabled;});" +
                 "var prev=document.querySelector('.vela-tv-selected');" +
