@@ -88,7 +88,7 @@ public class MainActivity extends Activity {
         Intent intent = getIntent();
         String action = intent.getAction();
         Uri data = intent.getData();
-        String url = "https://m.youtube.com/";
+        String url = isTelevision() ? "https://www.youtube.com/tv" : "https://m.youtube.com/";
         if (Intent.ACTION_VIEW.equals(action) && data != null) {
             url = data.toString();
         } else if (Intent.ACTION_SEND.equals(action)) {
@@ -141,63 +141,12 @@ public class MainActivity extends Activity {
         }
     }
 
-    // TV remote navigation for the mobile YouTube WebView.
-    // Only active on TV; phone/tablet touch behavior remains unchanged.
+    // Prefer YouTube's native TV navigation. Do not swallow D-pad events
+    // or synthesize DOM clicks: those break player controls and input fields.
     private boolean isTelevision() {
         return (getResources().getConfiguration().uiMode & Configuration.UI_MODE_TYPE_MASK)
                 == Configuration.UI_MODE_TYPE_TELEVISION
                 || getPackageManager().hasSystemFeature("android.software.leanback");
-    }
-
-    @Override
-    public boolean dispatchKeyEvent(android.view.KeyEvent event) {
-        if (isTelevision() && event.getAction() == android.view.KeyEvent.ACTION_DOWN && web != null) {
-            int code = event.getKeyCode();
-            String direction = null;
-            if (code == android.view.KeyEvent.KEYCODE_DPAD_UP) direction = "up";
-            else if (code == android.view.KeyEvent.KEYCODE_DPAD_DOWN) direction = "down";
-            else if (code == android.view.KeyEvent.KEYCODE_DPAD_LEFT) direction = "left";
-            else if (code == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) direction = "right";
-            else if (code == android.view.KeyEvent.KEYCODE_DPAD_CENTER
-                    || code == android.view.KeyEvent.KEYCODE_ENTER
-                    || code == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER) direction = "select";
-            if (direction != null) {
-                moveTvFocus(direction);
-                return true;
-            }
-        }
-        return super.dispatchKeyEvent(event);
-    }
-
-    private void moveTvFocus(String direction) {
-        // Select only on-screen interactive elements, skipping hidden/disabled controls.
-        // Focus outline is injected locally; no remote scripts or extra permissions.
-        String js = "(function(dir){" +
-                "var style=document.getElementById('vela-tv-focus-style');" +
-                "if(!style){style=document.createElement('style');style.id='vela-tv-focus-style';" +
-                "style.textContent='.vela-tv-selected{outline:4px solid #ff4fb8!important;outline-offset:3px!important;box-shadow:0 0 0 3px #161b30!important}';document.head.appendChild(style);}" +
-                "var els=Array.from(document.querySelectorAll('a[href],button,[role=button],[role=link],input,[tabindex]'))" +
-                ".filter(function(e){var r=e.getBoundingClientRect();var st=getComputedStyle(e);" +
-                "return r.width>8&&r.height>8&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth&&st.visibility!=='hidden'&&st.display!=='none'&&!e.disabled;});" +
-                "var prev=document.querySelector('.vela-tv-selected');" +
-                "if(dir==='select'){if(prev){prev.focus();prev.click();}return;}" +
-                "if(!els.length)return;" +
-                "var origin=prev&&els.includes(prev)?prev:null;" +
-                "var a=origin?origin.getBoundingClientRect():null;" +
-                "var ax=a?(a.left+a.right)/2:innerWidth/2;var ay=a?(a.top+a.bottom)/2:innerHeight/2;" +
-                "var best=null;var score=Infinity;" +
-                "els.forEach(function(e){if(e===origin)return;var r=e.getBoundingClientRect();" +
-                "var dx=(r.left+r.right)/2-ax,dy=(r.top+r.bottom)/2-ay;" +
-                "if(origin&&((dir==='left'&&dx>=-4)||(dir==='right'&&dx<=4)||(dir==='up'&&dy>=-4)||(dir==='down'&&dy<=4)))return;" +
-                "var primary=(dir==='left'||dir==='right')?Math.abs(dx):Math.abs(dy);" +
-                "var secondary=(dir==='left'||dir==='right')?Math.abs(dy):Math.abs(dx);" +
-                "var v=primary+secondary*2;if(v<score){score=v;best=e;}});" +
-                "if(!best&&!origin)best=els[0];" +
-                "if(best){if(prev)prev.classList.remove('vela-tv-selected');" +
-                "best.classList.add('vela-tv-selected');best.focus({preventScroll:true});" +
-                "best.scrollIntoView({block:'nearest',inline:'nearest'});}" +
-                "})('" + direction + "');";
-        web.evaluateJavascript(js, null);
     }
 
     private void handleBackPress() {
