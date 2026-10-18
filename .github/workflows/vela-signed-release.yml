@@ -1,0 +1,46 @@
+name: Vela YouTube Signed Release
+
+on:
+  push:
+    branches:
+      - feature/auto-signed-release-20261018
+    paths:
+      - 'app/**'
+      - 'build.gradle'
+      - 'gradle/**'
+      - 'gradle.properties'
+      - 'settings.gradle'
+      - '.github/workflows/vela-signed-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  signed-release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Build release
+        shell: cmd
+        run: gradlew.bat assembleRelease
+      - name: Sign APK with existing project key
+        shell: cmd
+        run: |
+          java -jar "signer\ApkSigner.jar" sign --key "signer\apkeasytool.pk8" --cert "signer\apkeasytool.pem" --v4-signing-enabled false --out "app/build/outputs/apk/release/vela-youtube-release.apk" "app/build/outputs/apk/release/app-release-unsigned.apk"
+      - name: Check release APK exists
+        shell: pwsh
+        run: |
+          $apk = 'app/build/outputs/apk/release/vela-youtube-release.apk'
+          if (!(Test-Path $apk) -or (Get-Item $apk).Length -lt 1024) { throw 'Signed APK missing or empty' }
+          Get-FileHash $apk -Algorithm SHA256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vela-youtube-signed-release
+          path: app/build/outputs/apk/release/vela-youtube-release.apk
+          if-no-files-found: error
+          retention-days: 14
