@@ -22,6 +22,23 @@ def require(condition, message):
         raise RuntimeError(message)
 
 
+def resource_files(table):
+    """Resolve AAPT's shortened APK paths through named resource configurations."""
+    result = {}
+    config = resource = None
+    for line in table.splitlines():
+        match = re.match(r'\s*config (.*):$', line)
+        if match:
+            config = match[1]
+        match = re.match(r'\s*resource (0x[0-9a-f]+) [^:]+:([^:]+):', line)
+        if match:
+            resource = match[2]
+        match = re.match(r'\s*\(string8\) "(res/[^"]+)"', line)
+        if match and resource:
+            result[resource, config] = match[1]
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--apk', required=True)
@@ -44,41 +61,43 @@ def main():
     manifest = run(args.aapt, 'dump', 'xmltree', args.apk, 'AndroidManifest.xml')
     for name in ('android:icon', 'android:roundIcon', 'android:banner'):
         require(name in manifest, f'Missing {name}')
+    table = run(args.aapt, 'dump', '--values', 'resources', args.apk)
+    files = resource_files(table)
+
+    def resolve(resource, config):
+        matches = [path for (name, qualifiers), path in files.items()
+                   if name == resource and re.fullmatch(config, qualifiers)]
+        require(len(matches) == 1, f'Missing/ambiguous {resource} ({config})')
+        return matches[0]
+
     resources = []
     with zipfile.ZipFile(args.apk) as apk:
-        names = apk.namelist()
         for density, size in [('mdpi', 48), ('hdpi', 72), ('xhdpi', 96),
                               ('xxhdpi', 144), ('xxxhdpi', 192)]:
-            matches = [n for n in names if re.fullmatch(
-                rf'res/mipmap-{density}(?:-v\d+)?/app_icon.png', n)]
-            require(len(matches) == 1, f'Missing/ambiguous {density} PNG')
-            resources.append((matches[0], size, size))
-        banners = [n for n in names if re.fullmatch(
-            r'res/drawable-xhdpi(?:-v\d+)?/vela_youtube_tv_banner.png', n)]
-        require(len(banners) == 1, 'TV banner PNG missing')
-        resources.append((banners[0], 320, 180))
-        logos = [n for n in names if n.endswith('/vela_youtube_logo.png')]
-        require(len(logos) == 1, 'Adaptive foreground PNG missing')
-        resources.append((logos[0], 1024, 1024))
-        for path, width, height in resources:
+            path = resolve('mipmap/app_icon', rf'{density}(?:-v\d+)?')
+            resources.append((path, size, size, f'mipmap-{density}/app_icon.png'))
+        resources.append((resolve('drawable/vela_youtube_tv_banner', r'xhdpi(?:-v\d+)?'),
+                          320, 180, 'drawable-xhdpi/vela_youtube_tv_banner.png'))
+        resources.append((resolve('drawable/vela_youtube_logo', r'\(default\)'),
+                          1024, 1024, 'drawable/vela_youtube_logo.png'))
+        for path, width, height, source_path in resources:
             data = apk.read(path)
             require(data[:8] == b'\x89PNG\r\n\x1a\n', f'Invalid PNG: {path}')
             require(struct.unpack('>II', data[16:24]) == (width, height),
                     f'Incorrect PNG dimensions: {path}')
-            source = Path('app/src/main/res') / re.sub(r'-v\d+(?=/)', '', path[4:])
+            source = Path('app/src/main/res') / source_path
             with Image.open(io.BytesIO(data)) as compiled, Image.open(source) as original:
                 require(compiled.convert('RGBA').tobytes() == original.convert('RGBA').tobytes(),
                         f'Compiled PNG pixels differ from supplied artwork: {path}')
-        adaptive = [n for n in names if re.fullmatch(
-            r'res/mipmap-anydpi-v26/app_icon.xml', n)]
-        require(len(adaptive) == 1, 'Adaptive icon missing')
-        xml = run(args.aapt, 'dump', 'xmltree', args.apk, adaptive[0])
+        adaptive = resolve('mipmap/app_icon', 'anydpi-v26')
+        xml = run(args.aapt, 'dump', 'xmltree', args.apk, adaptive)
         require('adaptive-icon' in xml and 'foreground' in xml, 'Invalid adaptive icon')
         require('monochrome' not in xml, 'Stale monochrome icon')
     report = dict(package='net.velalab.youtube', versionCode=5, versionName='0.1.4',
                   certificateSha256=CERT_SHA256, signatureSchemes=['v1', 'v2', 'v3'],
                   apkSha256=hashlib.sha256(Path(args.apk).read_bytes()).hexdigest(),
-                  pngResources=[dict(path=p, width=w, height=h) for p, w, h in resources],
+                  pngResources=[dict(path=p, width=w, height=h, source=s, pixelsMatch=True)
+                                for p, w, h, s in resources],
                   androidTvLauncher=True, adaptiveIcon=True, roundIcon=True,
                   signatureOutput=signature)
     Path(args.report).write_text(json.dumps(report, indent=2), encoding='utf-8')
