@@ -11,6 +11,7 @@ on:
       - 'gradle.properties'
       - 'settings.gradle'
       - '.github/workflows/vela-signed-release.yml'
+      - 'scripts/verify_release.py'
   workflow_dispatch:
 
 permissions:
@@ -25,9 +26,21 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PNG verification dependency
+        run: python -m pip install Pillow==11.3.0
+      - name: Install Android SDK platform
+        shell: pwsh
+        run: |
+          $sdkmanager = Get-ChildItem "$env:ANDROID_HOME/cmdline-tools" -Recurse -Filter sdkmanager.bat | Select-Object -First 1
+          if (!$sdkmanager) { throw 'Android sdkmanager not found' }
+          & $sdkmanager.FullName --install 'platforms;android-36' 'build-tools;36.0.0'
+          if ($LASTEXITCODE -ne 0) { throw 'SDK installation failed' }
       - name: Build release
         shell: cmd
-        run: gradlew.bat assembleRelease
+        run: gradlew.bat --no-daemon --stacktrace assembleRelease
       - name: Sign APK with existing project key
         shell: cmd
         run: |
@@ -38,9 +51,16 @@ jobs:
           $apk = 'app/build/outputs/apk/release/vela-youtube-release.apk'
           if (!(Test-Path $apk) -or (Get-Item $apk).Length -lt 1024) { throw 'Signed APK missing or empty' }
           Get-FileHash $apk -Algorithm SHA256
+      - name: Verify signature, identity, version and compiled PNG resources
+        shell: pwsh
+        run: |
+          python scripts/verify_release.py --apk app/build/outputs/apk/release/vela-youtube-release.apk --aapt "$env:ANDROID_HOME/build-tools/36.0.0/aapt.exe" --report app/build/outputs/apk/release/verification.json
+          if ($LASTEXITCODE -ne 0) { throw 'Release verification failed' }
       - uses: actions/upload-artifact@v4
         with:
           name: vela-youtube-signed-release
-          path: app/build/outputs/apk/release/vela-youtube-release.apk
+          path: |
+            app/build/outputs/apk/release/vela-youtube-release.apk
+            app/build/outputs/apk/release/verification.json
           if-no-files-found: error
           retention-days: 14
