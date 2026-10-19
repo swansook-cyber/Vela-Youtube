@@ -14,7 +14,7 @@ CERT_SHA256 = 'a40da80a59d170caa950cf15c18c454d47a39b26989d8b640ecd745ba71bf5dc'
 
 
 def run(*args):
-    return subprocess.check_output(args, text=True, stderr=subprocess.STDOUT)
+    return subprocess.check_output(args, text=True, encoding='utf-8', stderr=subprocess.STDOUT)
 
 
 def require(condition, message):
