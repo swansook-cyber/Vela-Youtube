@@ -22,9 +22,9 @@
 	<application
 		android:allowBackup="true"
 		android:label="@string/app_name"
-		android:icon="@mipmap/app_icon"
+		android:icon="@drawable/vela_youtube_store_icon"
 		android:roundIcon="@mipmap/app_icon"
-        android:banner="@drawable/vela_youtube_tv_banner"
+        android:banner="@drawable/vela_youtube_tv_banner_nodpi"
 		android:largeHeap="true"
 		android:usesCleartextTraffic="true"
 		android:theme="@style/AppTheme">

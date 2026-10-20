@@ -54,7 +54,7 @@ def main():
         require(re.search(rf'Verified using {scheme} scheme .*: true', signature),
                 f'Missing valid {scheme} signature')
     badging = run(args.aapt, 'dump', 'badging', args.apk)
-    require("package: name='net.velalab.youtube' versionCode='5' versionName='0.1.4'" in badging,
+    require("package: name='net.velalab.youtube' versionCode='6' versionName='0.1.5'" in badging,
             'Incorrect package or version')
     require("sdkVersion:'21'" in badging, 'Minimum Android version changed')
     require('leanback-launchable-activity:' in badging, 'Missing Android TV launcher')
@@ -76,8 +76,13 @@ def main():
                               ('xxhdpi', 144), ('xxxhdpi', 192)]:
             path = resolve('mipmap/app_icon', rf'{density}(?:-v\d+)?')
             resources.append((path, size, size, f'mipmap-{density}/app_icon.png'))
-        resources.append((resolve('drawable/vela_youtube_tv_banner', r'xhdpi(?:-v\d+)?'),
-                          320, 180, 'drawable-xhdpi/vela_youtube_tv_banner.png'))
+        icon = resolve('drawable/vela_youtube_store_icon', r'nodpi(?:-v\d+)?')
+        banner = resolve('drawable/vela_youtube_tv_banner_nodpi', r'nodpi(?:-v\d+)?')
+        require(re.search(r"^application:.* icon='" + re.escape(icon) +
+                          r"' banner='" + re.escape(banner) + r"'", badging, re.M),
+                'Launcher icon or TV banner does not resolve to the PNG resource')
+        resources.append((icon, 512, 512, 'drawable-nodpi/vela_youtube_store_icon.png'))
+        resources.append((banner, 320, 180, 'drawable-nodpi/vela_youtube_tv_banner_nodpi.png'))
         resources.append((resolve('drawable/vela_youtube_logo', r'\(default\)'),
                           1024, 1024, 'drawable/vela_youtube_logo.png'))
         for path, width, height, source_path in resources:
@@ -93,7 +98,7 @@ def main():
         xml = run(args.aapt, 'dump', 'xmltree', args.apk, adaptive)
         require('adaptive-icon' in xml and 'foreground' in xml, 'Invalid adaptive icon')
         require('monochrome' not in xml, 'Stale monochrome icon')
-    report = dict(package='net.velalab.youtube', versionCode=5, versionName='0.1.4',
+    report = dict(package='net.velalab.youtube', versionCode=6, versionName='0.1.5',
                   certificateSha256=CERT_SHA256, signatureSchemes=['v1', 'v2', 'v3'],
                   apkSha256=hashlib.sha256(Path(args.apk).read_bytes()).hexdigest(),
                   pngResources=[dict(path=p, width=w, height=h, source=s, pixelsMatch=True)
