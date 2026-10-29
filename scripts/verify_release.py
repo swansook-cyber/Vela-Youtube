@@ -1,8 +1,9 @@
-"""Validate the signed logo release without accessing signing key material."""
+"""Validate the release candidate without accessing signing key material."""
 import argparse
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import re
 import struct
@@ -10,7 +11,7 @@ import subprocess
 import zipfile
 from PIL import Image
 
-CERT_SHA256 = 'a40da80a59d170caa950cf15c18c454d47a39b26989d8b640ecd745ba71bf5dc'
+INSECURE_AOSP_TEST_CERT_SHA256 = 'a40da80a59d170caa950cf15c18c454d47a39b26989d8b640ecd745ba71bf5dc'
 
 
 def run(*args):
@@ -43,18 +44,22 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--apk', required=True)
     parser.add_argument('--aapt', required=True)
-    parser.add_argument('--java', default='java')
+    parser.add_argument('--apksigner', required=True)
     parser.add_argument('--report', required=True)
     args = parser.parse_args()
-    signature = run(args.java, '-jar', 'signer/apksigner.jar', 'verify',
-                    '--verbose', '--print-certs', args.apk)
-    require(f'certificate SHA-256 digest: {CERT_SHA256}' in signature,
-            'Signing certificate differs from the previous version 4 APK')
+    cert_sha256 = os.environ.get('VELA_RELEASE_CERT_SHA256', '').strip().lower()
+    require(re.fullmatch(r'[0-9a-f]{64}', cert_sha256),
+            'VELA_RELEASE_CERT_SHA256 must contain the independently verified keystore certificate SHA-256')
+    require(cert_sha256 != INSECURE_AOSP_TEST_CERT_SHA256,
+            'AOSP public test certificate is not permitted for this release')
+    signature = run(args.apksigner, 'verify', '--verbose', '--print-certs', args.apk)
+    require(f'certificate SHA-256 digest: {cert_sha256}' in signature,
+            'APK certificate differs from the verified permanent keystore')
     for scheme in ('v1', 'v2', 'v3'):
         require(re.search(rf'Verified using {scheme} scheme .*: true', signature),
                 f'Missing valid {scheme} signature')
     badging = run(args.aapt, 'dump', 'badging', args.apk)
-    require("package: name='net.velalab.youtube' versionCode='6' versionName='0.1.5'" in badging,
+    require("package: name='net.velalab.youtube' versionCode='7' versionName='0.1.6'" in badging,
             'Incorrect package or version')
     require("sdkVersion:'21'" in badging, 'Minimum Android version changed')
     require('leanback-launchable-activity:' in badging, 'Missing Android TV launcher')
@@ -98,8 +103,8 @@ def main():
         xml = run(args.aapt, 'dump', 'xmltree', args.apk, adaptive)
         require('adaptive-icon' in xml and 'foreground' in xml, 'Invalid adaptive icon')
         require('monochrome' not in xml, 'Stale monochrome icon')
-    report = dict(package='net.velalab.youtube', versionCode=6, versionName='0.1.5',
-                  certificateSha256=CERT_SHA256, signatureSchemes=['v1', 'v2', 'v3'],
+    report = dict(package='net.velalab.youtube', versionCode=7, versionName='0.1.6',
+                  certificateSha256=cert_sha256, signatureSchemes=['v1', 'v2', 'v3'],
                   apkSha256=hashlib.sha256(Path(args.apk).read_bytes()).hexdigest(),
                   pngResources=[dict(path=p, width=w, height=h, source=s, pixelsMatch=True)
                                 for p, w, h, s in resources],

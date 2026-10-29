@@ -1,9 +1,9 @@
-name: Vela YouTube Signed Release
+name: Vela YouTube 0.1.6 Release Candidate
 
 on:
   push:
     branches:
-      - feature/auto-signed-release-20261018
+      - release/v0.1.6-permanent-signing
     paths:
       - 'app/**'
       - 'build.gradle'
@@ -41,10 +41,38 @@ jobs:
       - name: Build release
         shell: cmd
         run: gradlew.bat --no-daemon --stacktrace assembleRelease
-      - name: Sign APK with existing project key
-        shell: cmd
+      - name: Sign with verified VelaLab permanent keystore
+        id: sign
+        shell: pwsh
+        env:
+          VELA_RELEASE_KEYSTORE_BASE64: ${{ secrets.VELA_RELEASE_KEYSTORE_BASE64 }}
+          VELA_RELEASE_STORE_PASSWORD: ${{ secrets.VELA_RELEASE_STORE_PASSWORD }}
+          VELA_RELEASE_KEY_ALIAS: ${{ secrets.VELA_RELEASE_KEY_ALIAS }}
+          VELA_RELEASE_KEY_PASSWORD: ${{ secrets.VELA_RELEASE_KEY_PASSWORD }}
         run: |
-          java -jar "signer\ApkSigner.jar" sign --key "signer\apkeasytool.pk8" --cert "signer\apkeasytool.pem" --v4-signing-enabled false --out "app/build/outputs/apk/release/vela-youtube-release.apk" "app/build/outputs/apk/release/app-release-unsigned.apk"
+          $ErrorActionPreference = 'Stop'
+          foreach ($name in @('VELA_RELEASE_KEYSTORE_BASE64', 'VELA_RELEASE_STORE_PASSWORD', 'VELA_RELEASE_KEY_ALIAS', 'VELA_RELEASE_KEY_PASSWORD')) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) { throw "Missing signing credential: $name" }
+          }
+          if ($env:VELA_RELEASE_KEY_ALIAS -cne 'vela-store') { throw 'Unexpected keystore alias' }
+          $keystore = Join-Path $env:RUNNER_TEMP 'vela-release.jks'
+          try {
+            [IO.File]::WriteAllBytes($keystore, [Convert]::FromBase64String($env:VELA_RELEASE_KEYSTORE_BASE64))
+            $keystoreSha256 = (Get-FileHash -LiteralPath $keystore -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($keystoreSha256 -ne '540e5d349ca14233e63fa199dce90f8c373e4673db70cebd2c11720a3a46700e') { throw 'CI keystore differs from the existing VelaLab file' }
+            $certificatePem = & keytool -exportcert -rfc -storetype PKCS12 -keystore $keystore -alias $env:VELA_RELEASE_KEY_ALIAS -storepass:env VELA_RELEASE_STORE_PASSWORD
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot read certificate from permanent keystore' }
+            $certificate = [Security.Cryptography.X509Certificates.X509Certificate2]::CreateFromPem(($certificatePem -join "`n"))
+            $actual = [Convert]::ToHexString($certificate.GetCertHash([Security.Cryptography.HashAlgorithmName]::SHA256)).ToLowerInvariant()
+            if ($actual -eq 'a40da80a59d170caa950cf15c18c454d47a39b26989d8b640ecd745ba71bf5dc') { throw 'AOSP test certificate is forbidden' }
+            $apksigner = Join-Path $env:ANDROID_HOME 'build-tools/36.0.0/apksigner.bat'
+            & $apksigner sign --ks $keystore --ks-type PKCS12 --ks-key-alias $env:VELA_RELEASE_KEY_ALIAS --ks-pass env:VELA_RELEASE_STORE_PASSWORD --key-pass env:VELA_RELEASE_KEY_PASSWORD --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true --v4-signing-enabled false --out 'app/build/outputs/apk/release/vela-youtube-release.apk' 'app/build/outputs/apk/release/app-release-unsigned.apk'
+            if ($LASTEXITCODE -ne 0) { throw 'APK signing failed' }
+            Write-Output "Verified keystore certificate SHA-256: $actual"
+            "certificate_sha256=$actual" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          } finally {
+            if (Test-Path $keystore) { Remove-Item -LiteralPath $keystore -Force }
+          }
       - name: Check release APK exists
         shell: pwsh
         run: |
@@ -53,12 +81,14 @@ jobs:
           Get-FileHash $apk -Algorithm SHA256
       - name: Verify signature, identity, version and compiled PNG resources
         shell: pwsh
+        env:
+          VELA_RELEASE_CERT_SHA256: ${{ steps.sign.outputs.certificate_sha256 }}
         run: |
-          python scripts/verify_release.py --apk app/build/outputs/apk/release/vela-youtube-release.apk --aapt "$env:ANDROID_HOME/build-tools/36.0.0/aapt.exe" --report app/build/outputs/apk/release/verification.json
+          python scripts/verify_release.py --apk app/build/outputs/apk/release/vela-youtube-release.apk --aapt "$env:ANDROID_HOME/build-tools/36.0.0/aapt.exe" --apksigner "$env:ANDROID_HOME/build-tools/36.0.0/apksigner.bat" --report app/build/outputs/apk/release/verification.json
           if ($LASTEXITCODE -ne 0) { throw 'Release verification failed' }
       - uses: actions/upload-artifact@v4
         with:
-          name: vela-youtube-signed-release
+          name: vela-youtube-v0.1.6-release-candidate
           path: |
             app/build/outputs/apk/release/vela-youtube-release.apk
             app/build/outputs/apk/release/verification.json
