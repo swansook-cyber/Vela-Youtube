@@ -12,6 +12,7 @@ import zipfile
 from PIL import Image
 
 INSECURE_AOSP_TEST_CERT_SHA256 = 'a40da80a59d170caa950cf15c18c454d47a39b26989d8b640ecd745ba71bf5dc'
+APPROVED_VELALAB_CERT_SHA256 = 'f3e5a2d996567a1e635f7c674e3f122ff3c6e599af9a0b5aa12bf079c706f904'
 
 
 def run(*args):
@@ -52,6 +53,8 @@ def main():
             'VELA_RELEASE_CERT_SHA256 must contain the independently verified keystore certificate SHA-256')
     require(cert_sha256 != INSECURE_AOSP_TEST_CERT_SHA256,
             'AOSP public test certificate is not permitted for this release')
+    require(cert_sha256 == APPROVED_VELALAB_CERT_SHA256,
+            'Release certificate differs from the approved VelaLab identity')
     signature = run(args.apksigner, 'verify', '--verbose', '--print-certs', args.apk)
     require(f'certificate SHA-256 digest: {cert_sha256}' in signature,
             'APK certificate differs from the verified permanent keystore')

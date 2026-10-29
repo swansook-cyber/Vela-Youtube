@@ -54,19 +54,19 @@ jobs:
           foreach ($name in @('VELA_RELEASE_KEYSTORE_BASE64', 'VELA_RELEASE_STORE_PASSWORD', 'VELA_RELEASE_KEY_ALIAS', 'VELA_RELEASE_KEY_PASSWORD')) {
             if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) { throw "Missing signing credential: $name" }
           }
-          if ($env:VELA_RELEASE_KEY_ALIAS -cne 'vela-store') { throw 'Unexpected keystore alias' }
-          $keystore = Join-Path $env:RUNNER_TEMP 'vela-release.jks'
+          if ($env:VELA_RELEASE_KEY_ALIAS -cne 'vela-tv-launcher') { throw 'Unexpected keystore alias' }
+          $keystore = Join-Path $env:RUNNER_TEMP 'vela-tv-launcher-release.jks'
           try {
             [IO.File]::WriteAllBytes($keystore, [Convert]::FromBase64String($env:VELA_RELEASE_KEYSTORE_BASE64))
             $keystoreSha256 = (Get-FileHash -LiteralPath $keystore -Algorithm SHA256).Hash.ToLowerInvariant()
-            if ($keystoreSha256 -ne '540e5d349ca14233e63fa199dce90f8c373e4673db70cebd2c11720a3a46700e') { throw 'CI keystore differs from the existing VelaLab file' }
-            $certificatePem = & keytool -exportcert -rfc -storetype PKCS12 -keystore $keystore -alias $env:VELA_RELEASE_KEY_ALIAS -storepass:env VELA_RELEASE_STORE_PASSWORD
+            if ($keystoreSha256 -ne '7221b09de19e25d98b397d8dcbc7392648bf3a6049df209ca28f9345b4ddc360') { throw 'CI keystore differs from the verified Vela TV backup' }
+            $certificatePem = & keytool -exportcert -rfc -storetype JKS -keystore $keystore -alias $env:VELA_RELEASE_KEY_ALIAS -storepass:env VELA_RELEASE_STORE_PASSWORD
             if ($LASTEXITCODE -ne 0) { throw 'Cannot read certificate from permanent keystore' }
             $certificate = [Security.Cryptography.X509Certificates.X509Certificate2]::CreateFromPem(($certificatePem -join "`n"))
             $actual = [Convert]::ToHexString($certificate.GetCertHash([Security.Cryptography.HashAlgorithmName]::SHA256)).ToLowerInvariant()
-            if ($actual -eq 'a40da80a59d170caa950cf15c18c454d47a39b26989d8b640ecd745ba71bf5dc') { throw 'AOSP test certificate is forbidden' }
+            if ($actual -ne 'f3e5a2d996567a1e635f7c674e3f122ff3c6e599af9a0b5aa12bf079c706f904') { throw 'Keystore certificate differs from the approved VelaLab identity' }
             $apksigner = Join-Path $env:ANDROID_HOME 'build-tools/36.0.0/apksigner.bat'
-            & $apksigner sign --ks $keystore --ks-type PKCS12 --ks-key-alias $env:VELA_RELEASE_KEY_ALIAS --ks-pass env:VELA_RELEASE_STORE_PASSWORD --key-pass env:VELA_RELEASE_KEY_PASSWORD --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true --v4-signing-enabled false --out 'app/build/outputs/apk/release/vela-youtube-release.apk' 'app/build/outputs/apk/release/app-release-unsigned.apk'
+            & $apksigner sign --ks $keystore --ks-type JKS --ks-key-alias $env:VELA_RELEASE_KEY_ALIAS --ks-pass env:VELA_RELEASE_STORE_PASSWORD --key-pass env:VELA_RELEASE_KEY_PASSWORD --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true --v4-signing-enabled false --out 'app/build/outputs/apk/release/vela-youtube-release.apk' 'app/build/outputs/apk/release/app-release-unsigned.apk'
             if ($LASTEXITCODE -ne 0) { throw 'APK signing failed' }
             Write-Output "Verified keystore certificate SHA-256: $actual"
             "certificate_sha256=$actual" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
